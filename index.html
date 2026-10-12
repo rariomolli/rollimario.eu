@@ -315,15 +315,18 @@ MB.addEventListener('click',()=>setMode(!DK));
 MB.setAttribute('aria-pressed',String(DK));MB.setAttribute('aria-checked',String(DK));MB.setAttribute('aria-label','Dark mode');
 /* Music: Spotify embed (playlist), loaded only after the first click; controlled via postMessage */
 const PL=document.getElementById('pl'),SPO='https://open.spotify.com';
-let sp=null,spReady=false,spT=0,spWant=false,spGo=false;
+let sp=null,spReady=false,spT=0,spWant=false,spGo=false,spOn=false,spRT=0;
 function spUI(on){PL.setAttribute('aria-pressed',String(on));PL.setAttribute('aria-label',on?'Pause music':'Play music');}
-function spSend(){try{sp.contentWindow.postMessage({command:'toggle'},SPO);}catch(e){}}
+function spCmd(c){try{sp.contentWindow.postMessage({command:c},SPO);}catch(e){}}
+function spSend(){spCmd('toggle');}
+/* first start: the embed sometimes drops the very first command while it is still loading, so repeat an idempotent 'resume' until it reports playing */
+function spStart(){spGo=true;spCmd('toggle');let n=0;clearInterval(spRT);spRT=setInterval(()=>{if(spOn||!spWant||++n>5){clearInterval(spRT);spRT=0;if(!spOn&&spWant)spUI(false);return;}spCmd('resume');},900);}
 addEventListener('message',e=>{
  if(e.origin!==SPO||!sp||e.source!==sp.contentWindow||!e.data)return;
  const d=e.data;
- if(d.type==='ready'){spReady=true;clearTimeout(spT);if(spWant&&!spGo){spGo=true;spSend();}}
+ if(d.type==='ready'){spReady=true;clearTimeout(spT);if(spWant&&!spGo)spStart();}
  /* ignore the embed's initial 'paused' state until our first play command has gone out */
- else if(d.type==='playback_update'&&d.payload){if(!spGo){if(spWant){spReady=true;clearTimeout(spT);spGo=true;spSend();}return;}spUI(!d.payload.isPaused);}
+ else if(d.type==='playback_update'&&d.payload){spOn=!d.payload.isPaused;if(!spGo){if(spWant){spReady=true;clearTimeout(spT);spStart();}return;}if(spOn&&spRT){clearInterval(spRT);spRT=0;}if(!spRT)spUI(spOn);}
 });
 PL.addEventListener('click',()=>{
  if(!sp){
@@ -334,7 +337,7 @@ PL.addEventListener('click',()=>{
   return;
  }
  if(!spReady)return;
- spUI(PL.getAttribute('aria-pressed')!=='true');spSend();
+ clearInterval(spRT);spRT=0;spWant=PL.getAttribute('aria-pressed')!=='true';spUI(spWant);spSend();
 });
 route();
 if(!R)requestAnimationFrame(draw);
