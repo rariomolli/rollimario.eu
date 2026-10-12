@@ -326,8 +326,8 @@ addEventListener('message',e=>{
 });
 PL.addEventListener('click',()=>{
  if(!sp){
-  sp=document.createElement('iframe');sp.id='sp';sp.title='Music';sp.setAttribute('allow','autoplay; encrypted-media');
-  sp.src=SPO+'/embed/playlist/1SPPLrwxwahSp16aQzXC0Y?utm_source=generator&theme=0';
+  sp=document.createElement('iframe');sp.id='sp';sp.title='Music';sp.setAttribute('allow','autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture');
+  sp.src=SPO+'/embed/playlist/1lNrAvhCMNVD4FvFRkFLps?utm_source=generator&theme=0';
   document.body.appendChild(sp);spUI(true);
   spT=setTimeout(()=>{if(!spReady){sp.remove();sp=null;spUI(false);}},10000);
   return;
