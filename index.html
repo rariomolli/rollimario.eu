@@ -315,21 +315,22 @@ MB.addEventListener('click',()=>setMode(!DK));
 MB.setAttribute('aria-pressed',String(DK));MB.setAttribute('aria-checked',String(DK));MB.setAttribute('aria-label','Dark mode');
 /* Music: Spotify embed (playlist), loaded only after the first click; controlled via postMessage */
 const PL=document.getElementById('pl'),SPO='https://open.spotify.com';
-let sp=null,spReady=false,spT=0;
+let sp=null,spReady=false,spT=0,spWant=false,spGo=false;
 function spUI(on){PL.setAttribute('aria-pressed',String(on));PL.setAttribute('aria-label',on?'Pause music':'Play music');}
 function spSend(){try{sp.contentWindow.postMessage({command:'toggle'},SPO);}catch(e){}}
 addEventListener('message',e=>{
  if(e.origin!==SPO||!sp||e.source!==sp.contentWindow||!e.data)return;
  const d=e.data;
- if(d.type==='ready'){spReady=true;clearTimeout(spT);if(PL.getAttribute('aria-pressed')==='true')spSend();}
- else if(d.type==='playback_update'&&d.payload)spUI(!d.payload.isPaused);
+ if(d.type==='ready'){spReady=true;clearTimeout(spT);if(spWant&&!spGo){spGo=true;spSend();}}
+ /* ignore the embed's initial 'paused' state until our first play command has gone out */
+ else if(d.type==='playback_update'&&d.payload){if(!spGo){if(spWant){spReady=true;clearTimeout(spT);spGo=true;spSend();}return;}spUI(!d.payload.isPaused);}
 });
 PL.addEventListener('click',()=>{
  if(!sp){
   sp=document.createElement('iframe');sp.id='sp';sp.title='Music';sp.setAttribute('allow','autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture');
   sp.src=SPO+'/embed/playlist/1lNrAvhCMNVD4FvFRkFLps?utm_source=generator&theme=0';
-  document.body.appendChild(sp);spUI(true);
-  spT=setTimeout(()=>{if(!spReady){sp.remove();sp=null;spUI(false);}},10000);
+  document.body.appendChild(sp);spWant=true;spGo=false;spUI(true);
+  spT=setTimeout(()=>{if(!spReady){sp.remove();sp=null;spWant=false;spUI(false);}},10000);
   return;
  }
  if(!spReady)return;
